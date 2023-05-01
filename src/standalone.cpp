@@ -36,18 +36,7 @@
  */
 #include "ethercat_device_configurator/EthercatDeviceConfigurator.hpp"
 
-#ifdef _ANYDRIVE_FOUND_
-#include <anydrive/Anydrive.hpp>
-#endif
-#ifdef _ELMO_FOUND_
-#include <elmo_ethercat_sdk/Elmo.hpp>
-#endif
-#ifdef _MAXON_FOUND_
 #include <maxon_epos_ethercat_sdk/Maxon.hpp>
-#endif
-#ifdef _ROKUBI_FOUND_
-#include <rokubimini_rsl_ethercat/RokubiminiEthercat.hpp>
-#endif
 #include <thread>
 #include <csignal>
 std::unique_ptr<std::thread> worker_thread;
@@ -66,15 +55,10 @@ void worker()
     }
     std::cout << "Setting RT Priority: " << (rtSuccess? "successful." : "not successful. Check user privileges.") << std::endl;
 
-    // Flag to set the drive state for the elmos on first startup
-#ifdef _ELMO_FOUND_
-    bool elmoEnabledAfterStartup = false;
-#endif
-    // Flag to set the drive state for the elmos on first startup
-#ifdef _MAXON_FOUND_
+    // Flag to set the drive state for the maxon on first startup
     bool maxonEnabledAfterStartup = false;
     // bool maxonOperational = false;
-#endif
+
     /*
     ** The communication update loop.
     ** This loop is supposed to be executed at a constant rate.
@@ -101,62 +85,9 @@ void worker()
          */
         for(const auto & slave:configurator->getSlaves())
         {
-            // Anydrive
-            if(configurator->getInfoForSlave(slave).type == EthercatDeviceConfigurator::EthercatSlaveType::Anydrive)
-            {
-#ifdef _ANYDRIVE_FOUND_
-                anydrive::AnydriveEthercatSlave::SharedPtr any_slave_ptr = std::dynamic_pointer_cast<anydrive::AnydriveEthercatSlave>(slave);
-
-                if(any_slave_ptr->getActiveStateEnum() == anydrive::fsm::StateEnum::ControlOp)
-                {
-                    anydrive::Command cmd;
-                    cmd.setModeEnum(anydrive::mode::ModeEnum::MotorVelocity);
-                    cmd.setMotorVelocity(10);
-
-                    any_slave_ptr->setCommand(cmd);
-                }
-#endif
-
-            }
-            // Rokubi
-            else if(configurator->getInfoForSlave(slave).type == EthercatDeviceConfigurator::EthercatSlaveType::Rokubi)
-            {
-#ifdef _ROKUBI_FOUND_
-                std::shared_ptr<rokubimini::ethercat::RokubiminiEthercat> rokubi_slave_ptr = std::dynamic_pointer_cast<rokubimini::ethercat::RokubiminiEthercat>(slave);
-                // Do things with the Rokubi sensors here
-#endif
-            }
-
-            // Elmo
-            else if(configurator->getInfoForSlave(slave).type == EthercatDeviceConfigurator::EthercatSlaveType::Elmo)
-            {
-#ifdef _ELMO_FOUND_
-                std::shared_ptr<elmo::Elmo> elmo_slave_ptr = std::dynamic_pointer_cast<elmo::Elmo>(slave);
-                if(!elmoEnabledAfterStartup)
-                    // Set elmos to operation enabled state, do not block the call!
-                    elmo_slave_ptr->setDriveStateViaPdo(elmo::DriveState::OperationEnabled, false);
-                // set commands if we can
-                if(elmo_slave_ptr->lastPdoStateChangeSuccessful() && elmo_slave_ptr->getReading().getDriveState() == elmo::DriveState::OperationEnabled)
-                {
-                    elmo::Command command;
-                    command.setTargetVelocity(50);
-                    elmo_slave_ptr->stageCommand(command);
-                }
-                else
-                {
-                    MELO_WARN_STREAM("Elmo '" << elmo_slave_ptr->getName() << "': " << elmo_slave_ptr->getReading().getDriveState());
-                    //elmo_slave_ptr->setDriveStateViaPdo(elmo::DriveState::OperationEnabled, false);
-                }
-                auto reading = elmo_slave_ptr->getReading();
-                // std::cout << "Elmo '" << elmo_slave_ptr->getName() << "': "
-                //                 << "velocity: " << reading.getActualVelocity() << " rad/s\n";
-#endif
-            }
             // Maxon
-            else if (configurator->getInfoForSlave(slave).type == EthercatDeviceConfigurator::EthercatSlaveType::Maxon)
+            if (configurator->getInfoForSlave(slave).type == EthercatDeviceConfigurator::EthercatSlaveType::Maxon)
             {
-#ifdef _MAXON_FOUND_
-
                 // Keep constant update rate
                 // auto start_time = std::chrono::steady_clock::now();
 
@@ -188,16 +119,11 @@ void worker()
                 // Constant update rate
                 // std::this_thread::sleep_until(start_time + std::chrono::milliseconds(1));
 
-#endif
             }
         }
         counter++;
-#ifdef _ELMO_FOUND_
-        elmoEnabledAfterStartup = true;
-#endif
-#ifdef _MAXON_FOUND_
+
         maxonEnabledAfterStartup = true;
-#endif
     }
 }
 
@@ -241,24 +167,6 @@ void signal_handler(int sig)
     exit(0);
 }
 
-#ifdef _ANYDRIVE_FOUND_
-// Some dummy callbacks
-void anydriveReadingCb(const std::string& name, const anydrive::ReadingExtended& reading)
-{
-    // std::cout << "Reading of anydrive '" << name << "'\n"
-    //           << "Joint velocity: " << reading.getState().getJointVelocity() << "\n\n";
-}
-#endif
-#ifdef _ROKUBI_FOUND_
-void rokubiReadingCb(const std::string& name, const rokubimini::Reading& reading)
-{
-    // std::cout << "Reading of rokubi '" << name << "'\n"
-    //           << "Force X: " << reading.getForceX() << "\n\n";
-}
-#endif
-
-
-
 /*
 ** Program entry.
 ** Pass the path to the setup.yaml file as first command line argument.
@@ -275,24 +183,6 @@ int main(int argc, char**argv)
     }
     // a new EthercatDeviceConfigurator object (path to setup.yaml as constructor argument)
     configurator = std::make_shared<EthercatDeviceConfigurator>(argv[1]);
-
-    /*
-    ** Add callbacks to the devices that support them.
-    ** If you don't want to use callbacks this part can simply be left out.
-    ** configurator->getSlavesOfType is another way of extracting only the evices
-    ** of a ceratin type.
-     */
-#ifdef _ANYDRIVE_FOUND_
-    for(const auto& device : configurator->getSlavesOfType<anydrive::AnydriveEthercatSlave>())
-    {
-        device->addReadingCb(anydriveReadingCb);
-    }
-#endif
-#if _ROKUBI_FOUND_
-    for(const auto& device : configurator->getSlavesOfType<rokubimini::ethercat::RokubiminiEthercat>()){
-        device->addReadingCb(rokubiReadingCb);
-    }
-#endif
 
     /*
     ** Start all masters.
@@ -315,21 +205,11 @@ int main(int argc, char**argv)
 
     /*
     ** Wait for a few PDO cycles to pass.
-    ** Set anydrives into to ControlOp state (internal state machine, not EtherCAT states)
      */
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     for(auto & slave: configurator->getSlaves())
     {
         std::cout << " " << slave->getName() << ": " << slave->getAddress() << std::endl;
-#ifdef _ANYDRIVE_FOUND_
-        if(configurator->getInfoForSlave(slave).type == EthercatDeviceConfigurator::EthercatSlaveType::Anydrive)
-        {
-            // Downcasting using shared pointers
-            anydrive::AnydriveEthercatSlave::SharedPtr any_slave_ptr = std::dynamic_pointer_cast<anydrive::AnydriveEthercatSlave>(slave);
-            any_slave_ptr->setFSMGoalState(anydrive::fsm::StateEnum::ControlOp, false,0,0);
-            std::cout << "Putting slave into operational mode: " << any_slave_ptr->getName() << " : " << any_slave_ptr->getAddress() << std::endl;
-        }
-#endif
     }
 
 
