@@ -1,7 +1,7 @@
 Maxon:
   config_run_sdo_verify_timeout: 50000
   print_debug_messages: true
-  use_raw_commands: false
+  use_raw_commands: false #vorher false
   drive_state_change_min_timeout: 2000
   drive_state_change_max_timeout: 1000000
   min_number_of_successful_target_state_readings: 5
@@ -14,28 +14,28 @@ Reading:
 
 Hardware:
   mode_of_operation:
-  - CyclicSynchronousTorqueMode
+  #- CyclicSynchronousTorqueMode
   - CyclicSynchronousPositionMode
-  - CyclicSynchronousVelocityMode
+  #- CyclicSynchronousVelocityMode
   position_encoder_resolution: 4096
-  gear_ratio: [1, 1]
+  gear_ratio: [62, 1]
   motor_constant: 1.0
-  working_voltage: 48
-  pole_pairs: 11
-  speed_constant: 26
-  torque_constant: 0.312
-  max_current: 4.9
-  nominal_current: 2.0
+  working_voltage: 24
+  pole_pairs: 8
+  speed_constant: 242
+  torque_constant: 0.0395
+  max_current: 24.0
+  nominal_current: 9.8
   min_position: 0
   max_position: 0 # Disable checks
-  max_profile_velocity: 50
+  max_profile_velocity: 628
   quick_stop_decel: 1000
   profile_decel: 1000
   follow_error_window: 4000
-  current_p_gain: 8.426858
-  current_i_gain: 10699.972
-  position_p_gain: 7.553428
-  position_i_gain: 46.226330
-  position_d_gain: 0.099505
-  velocity_p_gain: 0.119284
-  velocity_i_gain: 9.654194
+  current_p_gain: 8.426858 # TODO
+  current_i_gain: 1069.9972 # TODO
+  position_p_gain: 25.91 # ??? A/rad ???
+  position_i_gain: 1052.81 # ??? A/(rad*s) ???
+  position_d_gain: 0.208 # ??? A*s/rad ???
+  velocity_p_gain: 0.145
+  velocity_i_gain: 9.153
