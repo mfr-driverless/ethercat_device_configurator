@@ -28,7 +28,10 @@ add_definitions(-DMELO_USE_COUT)
 
 find_package(yaml-cpp REQUIRED)
 
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED
+    COMPONENTS
+        icecream_ros
+)
 
 find_package(anydrive )
 find_package(elmo_ethercat_sdk )
@@ -80,6 +83,7 @@ catkin_package(
 
 include_directories(
   include
+  ${catkin_INCLUDE_DIRS}
   ${anydrive_INCLUDE_DIRS}
   ${elmo_ethercat_sdk_INCLUDE_DIRS}
   ${maxon_epos_ethercat_sdk_INCLUDE_DIRS}

@@ -34,6 +34,9 @@
 **   Are you using gcc and g++ both with a version >= 8.4? See the
 **   README.md for more details.
  */
+
+#include <icecream.hpp>
+
 #include "ethercat_device_configurator/EthercatDeviceConfigurator.hpp"
 
 #include <maxon_epos_ethercat_sdk/Maxon.hpp>
@@ -193,6 +196,11 @@ void signal_handler(int sig)
  */
 int main(int argc, char**argv)
 {
+    icecream::ic
+        .prefix("\033[1;45m   IC   \033[0m ")
+        .show_c_string(false);
+    //icecream::ic.disable();
+
     // Set the abrt_ flag upon receiving an interrupt signal (e.g. Ctrl-c)
     std::signal(SIGINT, signal_handler);
 
