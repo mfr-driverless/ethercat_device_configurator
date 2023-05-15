@@ -39,6 +39,8 @@
 #include <maxon_epos_ethercat_sdk/Maxon.hpp>
 #include <thread>
 #include <csignal>
+
+
 std::unique_ptr<std::thread> worker_thread;
 bool abrt = false;
 
@@ -58,6 +60,8 @@ void worker()
     // Flag to set the drive state for the maxon on first startup
     bool maxonEnabledAfterStartup = false;
     // bool maxonOperational = false;
+
+    int target = 0;
 
     /*
     ** The communication update loop.
@@ -104,10 +108,26 @@ void worker()
                         maxon_slave_ptr->getReading().getDriveState() == maxon::DriveState::OperationEnabled)
                 {
                     maxon::Command command;
-                    command.setModeOfOperation(maxon::ModeOfOperationEnum::CyclicSynchronousTorqueMode);
+                    command.setModeOfOperation(maxon::ModeOfOperationEnum::CyclicSynchronousPositionMode);
+                    //command.setModeOfOperation(maxon::ModeOfOperationEnum::CyclicSynchronousTorqueMode);
+                    //command.setModeOfOperation(maxon::ModeOfOperationEnum::CyclicSynchronousVelocityMode);
+
                     auto reading = maxon_slave_ptr->getReading();
-                    command.setTargetPosition(reading.getActualPosition() + 10);
-                    command.setTargetTorque(-0.5);
+                    MELO_DEBUG_STREAM("ACTUAL POSITION '" << reading.getActualPosition());
+
+                    //command.setTargetPosition(reading.getActualPosition() + 1);
+                    auto eps = 0.00000000001;
+                    auto position = reading.getActualPosition();
+                    if (position < 0 + eps) {
+                        target = 360;
+                    } else if (position >= 360 - eps) {
+                        target = 0;
+                    }
+
+                    command.setTargetPosition(target);
+                    //command.setTargetVelocity(0.001);
+                    //command.setTargetTorque(-0.5);
+
                     maxon_slave_ptr->stageCommand(command);
                 }
                 else
